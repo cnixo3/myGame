@@ -1,0 +1,342 @@
+import pygame
+import time
+import random
+from tkinter import *
+pygame.init()
+
+disp_width = 1600
+disp_height = 900
+high_scores = {}
+black = (0,0,0)
+blue = (106,160,247)
+white = (255,255,255)
+red = (255, 0 ,0)
+green=(62,173,3)
+dark_green=(2,89,2)
+dark_red=(91,11,2)
+grey = (113,116,119)
+gameDisp = pygame.display.set_mode((disp_width, disp_height))
+pygame.display.set_caption('Fire Everything!!')
+clk = pygame.time.Clock()
+back = pygame.image.load('clouds.jpg')
+back = pygame.transform.scale(back,(disp_width,disp_height))
+class fighter(object):
+    def __init__(self, x,y):
+        self.x = x
+        self.y = y
+        self.y_change = 0
+        self.x_change = 0
+        self.disp_width = 1600
+        self.disp_height = 900
+        self.jetImg = pygame.image.load('fighter.png')
+        self.jetImg = pygame.transform.scale(self.jetImg,(45,65))
+        self.crashImg = pygame.image.load('crashed.png')
+        self.crashImg = pygame.transform.scale(self.crashImg,(45,65))
+        self.curr = self.jetImg
+    def update(self):
+        gameDisp.blit(self.curr,(self.x,self.y))
+    def crash(self):
+        self.curr = self.crashImg
+        self.update()
+    def move(self, x,y):
+        self.x=x
+        self.y=y
+        self.update()
+    def stop(self, direction):
+        if direction== 0:
+            self.x_change = 0
+        else:
+            self.y_change = 0
+        self.update()
+class missile(object):
+    def __init__(self,x,y):
+        self.missileImg = pygame.image.load('missile.png')
+        self.missileImg = pygame.transform.scale(self.missileImg,(20,100))
+        self.x=x
+        self.y=y
+        self.width = 20
+        self.height = 100
+        self.paneWidth = 1600
+        self.paneHeight = 900
+        self.speed=1.00044
+        self.change = 5
+    def update(self):
+        gameDisp.blit(self.missileImg,(self.x,self.y))
+    def move(self):
+        self.y-=self.change
+        self.change *=self.speed
+        if self.y<-100:
+            self.y=self.paneHeight-50
+            self.x = random.randrange(0,self.paneWidth)
+        self.update()
+    def check(self,playerx,playery):
+        playerx2 = playerx+45
+        playery2 = playery+65
+        collisionx = False
+        collisiony = False
+        collision = False
+        for tmpx in range(int(playerx),int(playerx2)):
+            if tmpx>self.x and tmpx<self.x+self.width:
+                collisionx=True
+                break
+        for tmpy in range(int(playery),int(playery2)):
+            if tmpy>self.y and tmpy<self.y+self.height:
+                collisiony = True
+                break
+        if collisionx and collisiony:
+            collision = True
+        return collision
+class horizontalMissile(object):
+    def __init__(self,x,y):
+        self.missileImg = pygame.image.load('horizontalmissile.png')
+        self.missileImg = pygame.transform.scale(self.missileImg,(100,20))
+        self.x=x
+        self.y=y
+        self.width = 100
+        self.height = 20
+        self.paneWidth = 1600
+        self.paneHeight = 900
+        self.speed=1.00044
+        self.change = 5
+    def update(self):
+        gameDisp.blit(self.missileImg,(self.x,self.y))
+    def move(self):
+        self.x+=self.change
+        self.change *=self.speed
+        if self.x>self.paneWidth+100:
+            self.x = -100
+            self.y = random.randrange(0,self.paneHeight)
+        self.update()
+    def check(self,playerx,playery):
+        playerx2 = playerx+45
+        playery2 = playery+65
+        collisionx = False
+        collisiony = False
+        collision = False
+        for tmpx in range(int(playerx),int(playerx2)):
+            if tmpx>self.x and tmpx<self.x+self.width:
+                collisionx=True
+                break
+        for tmpy in range(int(playery),int(playery2)):
+            if tmpy>self.y and tmpy<self.y+self.height:
+                collisiony = True
+                break
+        if collisionx and collisiony:
+            collision = True
+        return collision
+def text_objects(txt,font):
+    textSurface = font.render(txt,True, black)
+    return textSurface, textSurface.get_rect()
+def message_display(txt, score):
+    largeTxt = pygame.font.Font('freesansbold.ttf',100)
+    scoreTxt=pygame.font.Font('freesansbold.ttf',80)
+    Surf, Rect = text_objects(txt, largeTxt)
+    Surf2, Rect2 = text_objects('Score: '+score, scoreTxt)
+    Rect.center=((disp_width/2,disp_height/2))
+    Rect2.center=((disp_width/2,(disp_height/2)+100))
+    gameDisp.blit(Surf,Rect)
+    gameDisp.blit(Surf2,Rect2)
+    pygame.display.update()
+    time.sleep(2)
+    print_scores()
+    if len(high_scores)<20:
+        name_entry(score)
+    else:
+        test_score(score)
+    game_intro()
+def crash(score):
+    txt = "You Crashed"
+    message_display(txt,str(score))
+def timer(time):
+    txt = pygame.font.Font('freesansbold.ttf',60)
+    txtsurf=txt.render(str(time),True,white)
+    Rect = txtsurf.get_rect()
+    Rect.center=((1500,60))
+    gameDisp.blit(txtsurf,Rect)
+    pygame.display.update()
+def button(msg,x,y,w,h,light,dark,action=None):
+    mouse=pygame.mouse.get_pos()
+    click=pygame.mouse.get_pressed()
+    if x < mouse[0] < x+w and y < mouse[1] <y+h:
+        pygame.draw.rect(gameDisp,dark,(x,y,w,h))
+        if click[0]==1 and action != None:
+            if action =='play':
+                game_loop()
+                clk.tick(90)
+                clk.tick(90)
+            elif action == 'quit':
+                write_scores()
+                pygame.quit()
+                quit()
+    else:
+        pygame.draw.rect(gameDisp,light,(x,y,w,h))
+    smalltxt=pygame.font.Font('freesansbold.ttf',30)
+    Surf2, Rect2 = text_objects(msg, smalltxt)
+    Rect2.center=((x+(w/2),y+(h/2)))
+    gameDisp.blit(Surf2,Rect2)
+def game_intro():
+    intro = True
+    while intro:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                write_scores()
+                pygame.quit()
+                quit()
+        gameDisp.fill(blue)
+        introTxt=pygame.font.Font('freesansbold.ttf',100)
+        Surf, Rect = text_objects("Fire Everything!!", introTxt)
+        Rect.center=((disp_width/2,disp_height/2))
+        gameDisp.blit(Surf,Rect)
+        
+        pygame.draw.rect(gameDisp,grey,(545,545,210,110))
+        pygame.draw.rect(gameDisp,grey,(845,545,210,110))
+        button('Start!',550,550,200,100,green,dark_green,'play')
+        button('Quit',850,550,200,100,red,dark_red,'quit')
+        pygame.display.update()
+def read_scores():
+    handle = open('HighScores.txt', 'r')
+    for line in handle:
+        tmp = line.split()
+        high_scores[tmp[0]]= int(tmp[1])
+    handle.close()
+def write_scores():
+    handle = open('HighScores.txt', 'w')
+    for key in high_scores.keys():
+        handle.write(key + ' ' + str(high_scores[key])+ '\n')
+    handle.close()
+def test_score(score):
+    min = int(score)
+    min_loc = ''
+    for key, value in high_scores.items():
+        if int(value)<int(min):
+            min = int(value)
+            min_loc = key
+    if int(min)<int(score):
+        high_scores.pop(min_loc)
+        name_entry(score)
+def print_scores():
+    smalltxt=pygame.font.Font('freesansbold.ttf',40)
+    gameDisp.fill(red)
+    start_height = 20
+    position = 1
+    for key,value in sorted(high_scores.items(), key=lambda p:p[1], reverse=True):
+        Surf, Rect= text_objects(str(position)+'. '+key+': '+  str(value),smalltxt)
+        Rect.center=((disp_width/2,start_height))
+        gameDisp.blit(Surf,Rect)
+        position+=1
+        start_height+=45
+    pygame.display.update()
+    time.sleep(4)
+def name_entry(score):
+    
+    top = Tk()
+    def get_name():
+        tmp = str(E1.get())
+        top.destroy()
+        high_scores[tmp] = int(score)
+    L1 = Label(top, text="Please Enter Your Initials: ")
+    L1.pack(side=LEFT)
+    b = Button(top,text="Enter",width=5,command=get_name)
+    b.pack(side=RIGHT)
+    E1 = Entry(top, bd=10)
+    E1.pack(side=RIGHT)
+    top.mainloop()
+    
+def game_loop():
+    x=(disp_width*0.45)
+    y=(disp_height*0.45)
+    x_change = 0
+    y_change = 0
+    
+    missile_time=0
+    horizontal_time=0
+    
+    tmr=0
+    tm=0
+    player  = fighter(x,y)
+    missile_array = []
+    horizontal_array=[]
+    comp = missile(random.randrange(0,disp_width),disp_height-50)
+    missile_array.append(comp)
+    Exit = False
+    while not Exit:
+        if tm>200:
+            tm=0
+        tmr+=tm
+        missile_time+=tm
+        horizontal_time+=tm
+        tm = clk.get_time()
+        timer(tmr)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                write_scores()
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key==pygame.K_LEFT or event.key==pygame.K_a:
+                    x_change = -5
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    x_change = 5
+                if event.key==pygame.K_UP or event.key==pygame.K_w:
+                    y_change = -5
+                if event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    y_change = 5
+            if event.type==pygame.KEYUP:
+                if event.key==pygame.K_LEFT or event.key==pygame.K_a:
+                    x_change = 0
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    x_change = 0
+                if event.key==pygame.K_UP or event.key==pygame.K_w:
+                    y_change = 0
+                if event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    y_change = 0
+        x+=x_change
+        y+=y_change
+        player.move(x,y)
+        for horiz in horizontal_array:
+            horiz.move()
+            crashed = horiz.check(x,y)
+            if crashed:
+                gameDisp.fill(red)
+                player.crash()
+                crash(tmr)
+                tmr=0
+        for temp in missile_array:
+            temp.move()
+            crashed = temp.check(x,y)
+            if crashed:
+                gameDisp.fill(red)
+                player.crash()
+                crash(tmr)
+                tmr=0
+        if x>=disp_width-45 or x <= 0:
+            if x<0:
+                x=0
+            if x>disp_width-45:
+                x=disp_width-45
+            gameDisp.fill(red)
+            player.crash()
+            crash(tmr)
+            tmr=0
+        
+        gameDisp.blit(back,(0,0))
+        player.update()
+        for horiz in horizontal_array:
+            horiz.update() 
+        for temp in missile_array:
+            temp.update()   
+        pygame.display.update()
+        clk.tick(90)
+        if missile_time>10000:
+            tmp = missile(random.randrange(0,disp_width),disp_height-50)
+            missile_array.append(tmp)
+            missile_time=0
+        if horizontal_time>20000:
+            tmp = horizontalMissile(-100,random.randrange(0,disp_height))
+            horizontal_array.append(tmp)
+            horizontal_time=0
+read_scores()
+game_intro()
+game_loop()
+pygame.quit()
+quit()
